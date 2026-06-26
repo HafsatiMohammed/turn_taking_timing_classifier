@@ -309,7 +309,7 @@ scikit-learn >= 1.3.0 (Metrics)
 pyarrow >= 12.0.0    (Parquet I/O)
 ```
 
-All included in `requirements.txt`
+**All already in `requirements.txt` - nothing extra to install!**
 
 ---
 

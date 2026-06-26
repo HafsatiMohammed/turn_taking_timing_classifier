@@ -240,33 +240,16 @@ with open('reports/va_threshold_baseline/va_baseline_metrics.json') as f:
 "
 ```
 
-## Feature Extraction (If Needed)
+## Features Already Precomputed
 
-If you need to compute voice activity features from audio, you can:
-
-### Option 1: Silero VAD
-```python
-import torch
-from silero_vad import load_silero_vad
-
-model = load_silero_vad()
-
-# For each audio file:
-wav = torch.load('audio.wav')  # 16kHz mono
-speech_timestamps = model(wav)
-
-# Convert to boolean mask or silence durations
-```
-
-### Option 2: Your Own VAD System
-Compute the features and add columns to your manifest before running the baseline.
-
-Required outputs per sample:
+Your curated AMI dataset already includes the voice activity features as columns:
 - `human_active_at_t` (bool)
 - `num_humans_active_at_t` (int)
 - `overlap_active_at_t` (bool)
 - `silence_duration_before_t` (float)
 - `current_human_speech_duration` (float)
+
+The baseline script reads these directly - no feature extraction needed!
 
 ## Metrics Explained
 

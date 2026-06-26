@@ -206,7 +206,15 @@ turn_taking_timing_classifier/
 
 ## Voice Activity Threshold Baselines
 
-Two simple voice activity baselines are provided to establish baseline performance:
+Two simple voice activity baselines use your precomputed AMI features to establish baseline performance:
+
+### Quick Run
+
+```bash
+python scripts/eval_va_threshold_baseline.py \
+    --manifest data/processed/final_manifest.parquet \
+    --output-dir reports/va_threshold_baseline
+```
 
 ### VA-Silence
 Predicts **START_SPEAKING** only when silence duration exceeds threshold.
