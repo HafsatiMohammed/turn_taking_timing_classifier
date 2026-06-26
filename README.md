@@ -188,16 +188,62 @@ turn_taking_timing_classifier/
 │   ├── evaluation/
 │   │   ├── metrics.py           # All KPI calculations
 │   │   └── evaluator.py         # Evaluation pipeline
+│   ├── baselines/
+│   │   ├── va_threshold.py      # VA-Threshold baseline implementation
+│   │   └── __init__.py
 │   └── utils/
 │       ├── config.py            # Config loading
 │       └── logging.py           # Logging setup
 ├── scripts/
 │   ├── train.py                 # Main training script
 │   ├── test.py                  # Evaluation script
-│   └── resume_training.py       # Resume from checkpoint
+│   ├── resume_training.py       # Resume from checkpoint
+│   └── eval_va_threshold_baseline.py  # VA-Threshold baseline evaluation
 ├── checkpoints/                 # Saved models
 ├── logs/                        # Training logs
 └── README.md
+```
+
+## Voice Activity Threshold Baselines
+
+Two simple voice activity baselines are provided to establish baseline performance:
+
+### VA-Silence
+Predicts **START_SPEAKING** only when silence duration exceeds threshold.
+
+```bash
+python scripts/eval_va_threshold_baseline.py \
+    --manifest data/processed/final_manifest.parquet \
+    --output-dir reports/va_threshold_baseline
+```
+
+### VA-Threshold
+Predicts based on multiple voice activity patterns:
+- **START_SPEAKING**: When silence duration ≥ θ_start
+- **BACKCHANNEL**: When single human active for ≥ θ_bc_min_speech seconds
+- **WAIT**: Default
+
+#### Inputs
+- `human_active_at_t`: Is any human speaking at current time?
+- `num_humans_active_at_t`: Number of active humans
+- `overlap_active_at_t`: Multiple humans overlapping?
+- `silence_duration_before_t`: Seconds of silence before current time
+- `current_human_speech_duration`: Current continuous human speech duration
+
+#### Threshold Tuning
+The script automatically:
+1. Tries all threshold combinations on **validation** split
+2. Selects best thresholds based on Macro-F1
+3. Evaluates on **test** split with selected thresholds
+
+#### Output Files
+```
+reports/va_threshold_baseline/
+├── va_baseline_predictions.parquet  # Sample predictions
+├── va_baseline_metrics.json         # Detailed metrics
+├── va_baseline_metrics.md           # Human-readable metrics
+├── va_baseline_confusion_matrix_silence.csv
+└── va_baseline_confusion_matrix_threshold.csv
 ```
 
 ## Ablation Studies
