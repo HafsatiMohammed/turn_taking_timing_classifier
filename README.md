@@ -241,19 +241,3 @@ Resume automatically continues from last saved state with reproducible RNG.
 **Poor metrics**: Check dataset path and label distribution
 **NaN loss**: Try reducing `learning_rate` or using `loss.type: "ce"` without class weights
 
-## Citation
-
-For ablation study paper:
-
-```bibtex
-@article{timing_classifier_2024,
-  title={Turn-Taking Timing Classification in Multi-Speaker Conversations},
-  author={...},
-  year={2024}
-}
-```
-
-## References
-
-- TCN: Bai, S., et al. (2018). "An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling"
-- Conversation modeling: Levow, G. A., et al. (2021). "Cross-lingual Structure Transfer for Relation Extraction"
