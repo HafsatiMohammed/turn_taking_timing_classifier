@@ -1,0 +1,135 @@
+# ============================================================================
+# Ablation Study Configurations
+# ============================================================================
+
+# Ablation 1: Previous Activity Only (Main Study)
+# Only uses pseudo_robot_past_active feature from frame history
+ablation_1:
+  name: "Previous Activity Only"
+  description: "Only frame feature #6 (pseudo_robot_past_active). Zeros all other frame features."
+  enabled_frame_features: [6]           # Only feature 6
+  enabled_scalar_features: null          # No scalar features (ablation focus)
+  model:
+    frame_branch:
+      output_dim: 64                     # Smaller since fewer features
+    scalar_branch:
+      output_dim: 0                      # No scalar branch
+  comment: "Baseline: what can be predicted from just robot's own past activity?"
+
+# Ablation 2: Previous Activity + Scalar Context
+# Frame feature 6 + all scalar features
+ablation_2:
+  name: "Previous Activity + Current Context"
+  description: "Frame feature #6 + all 6 scalar features for current time"
+  enabled_frame_features: [6]
+  enabled_scalar_features: [0, 1, 2, 3, 4, 5]  # All scalar features
+  model:
+    frame_branch:
+      output_dim: 64
+    scalar_branch:
+      output_dim: 64
+  comment: "Test if current scalar context helps beyond historical activity"
+
+# Ablation 3: All Frame Features (No Scalar)
+# All 7 frame features but no scalar features
+ablation_3:
+  name: "All Frame History Only"
+  description: "All 7 frame features (6 seconds history) but no scalar features"
+  enabled_frame_features: [0, 1, 2, 3, 4, 5, 6]
+  enabled_scalar_features: null
+  model:
+    frame_branch:
+      output_dim: 128
+    scalar_branch:
+      output_dim: 0
+  comment: "Test if temporal context is sufficient without current state"
+
+# Ablation 4: Full Model (Baseline)
+# All frame + all scalar features
+ablation_4:
+  name: "Full Model (Baseline)"
+  description: "All 7 frame features + all 6 scalar features"
+  enabled_frame_features: [0, 1, 2, 3, 4, 5, 6]
+  enabled_scalar_features: [0, 1, 2, 3, 4, 5]
+  model:
+    frame_branch:
+      output_dim: 128
+    scalar_branch:
+      output_dim: 64
+  comment: "Full model with all available features"
+
+# Ablation 5: All Scalar, No Temporal
+# Only scalar features, no frame history
+ablation_5:
+  name: "Current State Only (No History)"
+  description: "All 6 scalar features, no frame history"
+  enabled_frame_features: null
+  enabled_scalar_features: [0, 1, 2, 3, 4, 5]
+  model:
+    frame_branch:
+      output_dim: 0
+    scalar_branch:
+      output_dim: 64
+  comment: "Can decision be made from just current instant state?"
+
+# Ablation 6: Human Activity History Only
+# Frame features 0-5 (human-related) but not robot past
+ablation_6:
+  name: "Human Activity History (No Robot State)"
+  description: "All human-related frame features (0-5), excluding robot past activity"
+  enabled_frame_features: [0, 1, 2, 3, 4, 5]
+  enabled_scalar_features: null
+  model:
+    frame_branch:
+      output_dim: 128
+    scalar_branch:
+      output_dim: 0
+  comment: "Pure human activity vs. human + robot awareness"
+
+# ============================================================================
+# Feature Descriptions
+# ============================================================================
+# Frame features (120 timesteps, 6 seconds at 0.05s shift):
+# [0] any_human_active              - Boolean: is any human speaking
+# [1] num_humans_active_norm        - Normalized count of active speakers
+# [2] overlap_active                - Boolean: multiple speakers overlapping
+# [3] silence_active                - Boolean: silence (no one speaking)
+# [4] human_onset                   - Boolean: human just started speaking
+# [5] human_offset                  - Boolean: human just stopped speaking
+# [6] pseudo_robot_past_active      - Boolean: was robot speaking in this frame
+#
+# Scalar features (current time):
+# [0] silence_duration_before_t     - Seconds of silence before current time
+# [1] current_human_speech_duration - Seconds: how long humans have been speaking
+# [2] human_speech_ratio_last_1s    - % of last 1s with human speech
+# [3] human_speech_ratio_last_6s    - % of last 6s with human speech
+# [4] overlap_ratio_last_6s         - % of last 6s with overlapping speech
+# [5] time_since_pseudo_robot_last_spoke - Seconds since robot's last utterance
+
+# ============================================================================
+# How to Run
+# ============================================================================
+# 1. Create separate config file for each ablation:
+#    cp configs/config.yaml configs/ablation_1.yaml
+#    cp configs/config.yaml configs/ablation_2.yaml
+#    ...
+#
+# 2. In each ablation_N.yaml, set the model and features section from above
+#
+# 3. Run training:
+#    python scripts/train.py --config configs/ablation_1.yaml
+#    python scripts/train.py --config configs/ablation_2.yaml
+#    ...
+#
+# 4. Compare results:
+#    python scripts/analyze_ablations.py  # (create this script)
+#
+# ============================================================================
+# Expected Results Pattern
+# ============================================================================
+# ablation_1 (prev activity only):  ~0.40-0.55 Macro-F1  [baseline]
+# ablation_2 (+ scalar):            ~0.55-0.65 Macro-F1  [adds context]
+# ablation_3 (full frame):          ~0.60-0.68 Macro-F1  [temporal helps]
+# ablation_4 (full model):          ~0.65-0.75 Macro-F1  [best performance]
+# ablation_5 (scalar only):         ~0.35-0.50 Macro-F1  [instant vs. history]
+# ablation_6 (human only):          ~0.55-0.65 Macro-F1  [human activity importance]

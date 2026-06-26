@@ -1,0 +1,152 @@
+# ============================================================================
+# Turn-Taking Timing Classifier - Configuration
+# ============================================================================
+
+# Dataset
+dataset:
+  path: "data/processed/hf_export"  # Path to parquet files
+  manifest_path: "data/processed/final_manifest.jsonl"
+  train_split: "train"
+  val_split: "validation"
+  test_split: "test"
+  num_workers: 4
+  prefetch_factor: 2
+
+# Input shapes
+input:
+  frame_seq_len: 120          # 6 seconds at 0.05s frame shift
+  frame_dim: 7                # Features per frame
+  scalar_dim: 6               # Scalar features
+
+# Model architecture
+model:
+  name: "TimingActionNet"
+
+  # Frame branch (TCN/GRU)
+  frame_branch:
+    type: "tcn"               # Options: tcn, gru, lstm
+    in_channels: 7
+    out_channels: [32, 64, 128]
+    kernel_size: 3
+    dropout: 0.3
+    output_dim: 128
+
+  # Scalar branch (MLP)
+  scalar_branch:
+    hidden_dims: [64, 64]
+    dropout: 0.2
+    output_dim: 64
+
+  # Fusion
+  fusion:
+    hidden_dims: [256, 128]
+    dropout: 0.3
+    output_dim: 3              # WAIT, BACKCHANNEL, START_SPEAKING
+
+  # Regularization
+  l2_reg: 0.0001
+
+# Training
+training:
+  device: "cuda"              # cuda, cpu, mps
+  batch_size: 32
+  val_batch_size: 64
+  test_batch_size: 64
+  num_epochs: 100
+  learning_rate: 0.001
+  lr_scheduler: "cosine"      # cosine, step, exponential, none
+  lr_scheduler_params:
+    T_max: 100                # For cosine annealing
+    eta_min: 0.00001
+
+  optimizer: "adam"           # adam, adamw, sgd
+  optimizer_params:
+    weight_decay: 0.0001
+
+  gradient_clip: 1.0
+
+  # Loss function
+  loss:
+    type: "weighted_ce"       # weighted_ce, focal, ce
+    class_weights: null       # Auto-computed from data if null
+    focal_alpha: 0.25
+    focal_gamma: 2.0
+
+  # Training control
+  warmup_epochs: 5
+  early_stopping_patience: 15
+  early_stopping_metric: "val_macro_f1"
+  early_stopping_mode: "max"
+
+  # Checkpointing
+  checkpoint_dir: "checkpoints"
+  save_every_epoch: 5
+  keep_best_k: 3
+
+  # Data balancing
+  class_balance: true         # Use class weights
+  balance_strategy: "weighted" # weighted, oversampling, undersampling
+
+  # Seed for reproducibility
+  seed: 42
+
+# Evaluation
+evaluation:
+  batch_size: 64
+  metrics:
+    primary:
+      - macro_f1
+      - backchannel_f1
+      - start_speaking_f1
+      - false_entry_rate
+      - missed_entry_rate
+    secondary:
+      - wait_f1
+      - balanced_accuracy
+      - bc_as_turn_error
+      - turn_as_bc_error
+      - floor_violation_rate
+      - aggressiveness_rate
+      - ece
+    dataset_quality:
+      - label_distribution
+      - training_weight_stats
+    real_time:
+      - inference_latency_ms
+      - real_time_factor
+      - model_size_mb
+
+  # Evaluation on subsets
+  per_pseudo_robot: true      # Evaluate per pseudo-robot A,B,C,D
+  per_weak_label: true        # Evaluate per weak label subtype
+
+  # Inference thresholds (from robot policy)
+  thresholds:
+    start_speaking: 0.70
+    backchannel: 0.55
+
+# Logging
+logging:
+  level: "INFO"
+  log_dir: "logs"
+  tensorboard: true
+  wandb: false
+  wandb_project: null
+  experiment_name: "ablation_study_1"
+
+  # What to log
+  log_freq_batches: 100       # Log metrics every N batches
+  log_freq_epochs: 1
+
+# Inference
+inference:
+  window_size_ms: 100         # 100ms or 200ms per policy
+  context_duration_s: 6.0     # 6 seconds of history
+  frame_shift_s: 0.05         # Frame shift duration
+
+# Hardware
+hardware:
+  mixed_precision: true       # AMP training
+  num_gpus: 1
+  distributed: false          # DDP training
+  pin_memory: true
